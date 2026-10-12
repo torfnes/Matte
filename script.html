@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oppgavegenerator: Flislegging</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h1 {
+            color: #2c3e50;
+            margin-top: 0;
+            text-align: center;
+            border-bottom: 2px solid #eef2f3;
+            padding-bottom: 15px;
+        }
+        .intro {
+            font-size: 1.1em;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin: 25px 0;
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+        }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-bottom: 25px;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .btn-generate {
+            background-color: #3498db;
+            color: white;
+        }
+        .btn-generate:hover {
+            background-color: #2980b9;
+        }
+        .btn-answer {
+            background-color: #2ecc71;
+            color: white;
+        }
+        .btn-answer:hover {
+            background-color: #27ae60;
+        }
+        .fasit-section {
+            background-color: #f9f9f9;
+            border-left: 5px solid #2ecc71;
+            padding: 20px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .fasit-section h3 {
+            margin-top: 0;
+            color: #27ae60;
+        }
+        .hidden {
+            display: none;
+        }
+        ul {
+            padding-left: 20px;
+            line-height: 1.6;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Oppgavegenerator: Flislegging</h1>
+    
+    <div id="oppgave-tekst" class="intro">
+        Laster oppgave...
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="skisseCanvas" width="500" height="400"></canvas>
+    </div>
+
+    <div class="button-group">
+        <button class="btn-generate" onclick="genererOppgave()">Generer ny oppgave</button>
+        <button class="btn-answer" id="fasitKnapp" onclick="toggleFasit()">Vis fasit</button>
+    </div>
+
+    <div id="fasit" class="fasit-section hidden">
+        <h3>Fasit</h3>
+        <div id="fasit-tekst"></div>
+    </div>
+</div>
+
+<script>
+    let gjeldendeOppgave = {};
+
+    function tilfeldigHeltall(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function genererOppgave() {
+        // Skjul fasit med en gang en ny oppgave genereres
+        document.getElementById('fasit').classList.add('hidden');
+        document.getElementById('fasitKnapp').innerText = "Vis fasit";
+
+        // Velg type areal
+        const typer = ["et bad", "en terrasse"];
+        const type = typer[tilfeldigHeltall(0, 1)];
+
+        // Velg flisestørrelse i meter (0.2m, 0.3m, 0.4m, 0.5m)
+        const flisStorrelser = [0.2, 0.3, 0.4, 0.5];
+        const flisMål = flisStorrelser[tilfeldigHeltall(0, flisStorrelser.length - 1)];
+
+        // Lag en L-form basert på antall fliser langs hver kant
+        // Vi har et stort rektangel (W x H) og kutter ut en bit (w_cut x h_cut) nede til høyre
+        // Dette gir en sammensatt L-form.
+        
+        const fliserW = tilfeldigHeltall(12, 20);
+        const fliserH = tilfeldigHeltall(12, 20);
+        const fliserW_cut = tilfeldigHeltall(4, Math.floor(fliserW * 0.5));
+        const fliserH_cut = tilfeldigHeltall(4, Math.floor(fliserH * 0.5));
+
+        // Regn ut reelle mål i meter
+        const A = Number((fliserW * flisMål).toFixed(1));
+        const B = Number((fliserH * flisMål).toFixed(1));
+        const C = Number(((fliserW - fliserW_cut) * flisMål).toFixed(1));
+        const D = Number((fliserH_cut * flisMål).toFixed(1));
+        const E = Number((fliserW_cut * flisMål).toFixed(1));
+        const F = Number(((fliserH - fliserH_cut) * flisMål).toFixed(1));
+
+        // Økonomi
+        const flisPris = tilfeldigHeltall(25, 85); // Pris per flis i kr
+        const rabattProsent = tilfeldigHeltall(3, 7) * 5; // 15%, 20%, 25%, 30%, 35%
+
+        // Beregninger for fasit
+        // Areal = totalt areal - utkutte areal
+        const totalAreal = Number((A * B - E * D).toFixed(2));
+        
+        // Antall fliser totalt
+        const antallFliser = (fliserW * fliserH) - (fliserW_cut * fliserH_cut);
+        
+        const prisFørRabatt = antallFliser * flisPris;
+        const rabattSum = (prisFørRabatt * rabattProsent) / 100;
+        const prisEtterRabatt = prisFørRabatt - rabattSum;
+
+        gjeldendeOppgave = {
+            type, flisMål, A, B, C, D, E, F, flisPris, rabattProsent,
+            totalAreal, antallFliser, prisFørRabatt, rabattSum, prisEtterRabatt,
+            fliserW, fliserH, fliserW_cut, fliserH_cut
+        };
+
+        // Oppdater tekst
+        document.getElementById('oppgave-tekst').innerHTML = `
+            Du skal flislegge <strong>${type}</strong> som har en sammensatt grunnflate som vist på skissen under. <br><br>
+            Du skal bruke kvadratiske fliser med mål på <strong>${Math.round(flisMål*100)}x${Math.round(flisMål*100)} cm</strong>.<br>
+            Flisene selges per stykk og koster vanligvis <strong>${flisPris} kr</strong> per flis. 
+            Heldigvis får du en rabatt på <strong>${rabattProsent} %</strong> på hele kjøpet.<br><br>
+            <strong>Spørsmål:</strong><br>
+            1) Hva er det totale arealet av grunnflaten i m²?<br>
+            2) Hvor mange fliser må du kjøpe for å dekke hele flaten (uten svinn)?<br>
+            3) Hvor mye koster flisene totalt før rabatt, og hva blir prisen etter at rabatten er trukket fra?
+        `;
+
+        tegnSkisse();
+    }
+
+    function toggleFasit() {
+        const fasitDiv = document.getElementById('fasit');
+        const knapp = document.getElementById('fasitKnapp');
+        
+        if (fasitDiv.classList.contains('hidden')) {
+            // Generer fasit-tekst
+            const o = gjeldendeOppgave;
+            document.getElementById('fasit-tekst').innerHTML = `
+                <ul>
+                    <li><span class="highlight">1) Totalt areal:</span> Grunnflaten kan deles inn i to rektangler.<br>
+                        F.eks. Rektangel 1: ${o.C} m × ${o.B} m = ${(o.C * o.B).toFixed(2)} m².<br>
+                        Rektangel 2: ${o.E} m × ${o.F} m = ${(o.E * o.F).toFixed(2)} m².<br>
+                        Totalt areal = <strong>${o.totalAreal} m²</strong>.
+                    </li>
+                    <li><span class="highlight">2) Antall fliser:</span> <br>
+                        En flis på ${Math.round(o.flisMål*100)}x${Math.round(o.flisMål*100)} cm har et areal på ${(o.flisMål * o.flisMål).toFixed(4)} m².<br>
+                        Antall fliser: ${o.totalAreal} m² / ${(o.flisMål * o.flisMål).toFixed(4)} m² = <strong>${o.antallFliser} stk.</strong>
+                    </li>
+                    <li><span class="highlight">3) Prisberegning:</span><br>
+                        Pris før rabatt: ${o.antallFliser} stk × ${o.flisPris} kr = <strong>${o.prisFørRabatt.toLocaleString('no-NO')} kr</strong>.<br>
+                        Rabatt (${o.rabattProsent} %): ${o.prisFørRabatt.toLocaleString('no-NO')} kr × ${o.rabattProsent}/100 = ${o.rabattSum.toLocaleString('no-NO')} kr.<br>
+                        Pris å betale etter rabatt: <strong>${o.prisEtterRabatt.toLocaleString('no-NO')} kr</strong>.
+                    </li>
+                </ul>
+            `;
+            fasitDiv.classList.remove('hidden');
+            knapp.innerText = "Skjul fasit";
+        } else {
+            fasitDiv.classList.add('hidden');
+            knapp.innerText = "Vis fasit";
+        }
+    }
+
+    function tegnSkisse() {
+        const canvas = document.getElementById('skisseCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const o = gjeldendeOppgave;
+
+        // Bestem skaleringsfaktor og marginer
+        const margin = 50;
+        const tilgjengeligBredde = canvas.width - 2 * margin;
+        const tilgjengeligHøyde = canvas.height - 2 * margin;
+
+        const skalaX = tilgjengeligBredde / o.fliserW;
+        const skalaY = tilgjengeligHøyde / o.fliserH;
+        const skala = Math.min(skalaX, skalaY);
+
+        // Startpunkt (øverst til venstre)
+        const startX = margin + (tilgjengeligBredde - o.fliserW * skala) / 2;
+        const startY = margin + (tilgjengeligHøyde - o.fliserH * skala) / 2;
+
+        // Punkter for L-formen (klokken rundt fra øverst til venstre)
+        // Vi bygger formen: Toppkant, Høyre-topp-kant, Inn-kant-horisontal, Ned-kant-vertikal, Bunn-kant, Venstre-kant
+        const p1 = { x: startX, y: startY }; // Topp-venstre
+        const p2 = { x: startX + o.fliserW * skala, y: startY }; // Topp-høyre
+        const p3 = { x: startX + o.fliserW * skala, y: startY + (o.fliserH - o.fliserH_cut) * skala };
+        const p4 = { x: startX + (o.fliserW - o.fliserW_cut) * skala, y: startY + (o.fliserH - o.fliserH_cut) * skala };
+        const p5 = { x: startX + (o.fliserW - o.fliserW_cut) * skala, y: startY + o.fliserH * skala };
+        const p6 = { x: startX, y: startY + o.fliserH * skala };
+
+        // Tegn flise-rutenett (svakt i bakgrunnen)
+        ctx.strokeStyle = "#e8e8e8";
+        ctx.lineWidth = 1;
+        
+        // Vertikale striper
+        for (let i = 0; i <= o.fliserW; i++) {
+            let x = startX + i * skala;
+            for (let j = 0; j <= o.fliserH; j++) {
+                let y = startY + j * skala;
+                // Sjekk om punktet er inni L-formen
+                if (i <= (o.fliserW - o.fliserW_cut) || j <= (o.fliserH - o.fliserH_cut)) {
+                    // Tegn linjebiter hvis aktuelt
+                }
+            }
+        }
+
+        // Enklere måte å tegne rutenett på: Klipp ut L-formen og tegn rutenett inni
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.lineTo(p3.x, p3.y);
+        ctx.lineTo(p4.x, p4.y);
+        ctx.lineTo(p5.x, p5.y);
+        ctx.lineTo(p6.x, p6.y);
+        ctx.closePath();
+        ctx.clip();
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+
+        ctx.strokeStyle = "#e0e0e0";
+        for (let i = 0; i <= o.fliserW; i++) {
+            ctx.beginPath();
+            ctx.moveTo(startX + i * skala, startY);
+            ctx.lineTo(startX + i * skala, startY + o.fliserH * skala);
+            ctx.stroke();
+        }
+        for (let j = 0; j <= o.fliserH; j++) {
+            ctx.beginPath();
+            ctx.moveTo(startX, startY + j * skala);
+            ctx.lineTo(startX + o.fliserW * skala, startY + j * skala);
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        // Tegn tykk ytterlinje for L-formen
+        ctx.strokeStyle = "#2c3e50";
+        ctx.lineWidth = 3;
+        ctx.lineJoin = "bevel";
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.lineTo(p3.x, p3.y);
+        ctx.lineTo(p4.x, p4.y);
+        ctx.lineTo(p5.x, p5.y);
+        ctx.lineTo(p6.x, p6.y);
+        ctx.closePath();
+        ctx.stroke();
+
+        // Sett på mållinjer og tekst
+        ctx.fillStyle = "#2c3e50";
+        ctx.font = "14px 'Segoe UI', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        // Mål A (Toppvegg full bredde)
+        ctx.fillText(`${o.A} m`, startX + (o.fliserW * skala) / 2, startY - 20);
+        tegnPil(ctx, startX, startY - 12, startX + o.fliserW * skala, startY - 12);
+
+        // Mål B (Venstrevegg full høyde)
+        ctx.save();
+        ctx.translate(startX - 25, startY + (o.fliserH * skala) / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText(`${o.B} m`, 0, 0);
+        ctx.restore();
+        tegnPil(ctx, startX - 12, startY + o.fliserH * skala, startX - 12, startY);
+
+        // Mål C (Bunnvegg venstre del)
+        ctx.fillText(`${o.C} m`, startX + ((o.fliserW - o.fliserW_cut) * skala) / 2, startY + o.fliserH * skala + 20);
+        tegnPil(ctx, startX, startY + o.fliserH * skala + 12, startX + (o.fliserW - o.fliserW_cut) * skala, startY + o.fliserH * skala + 12);
+
+        // Mål D (Innhukksvegg vertikal)
+        ctx.save();
+        ctx.translate(startX + (o.fliserW - o.fliserW_cut) * skala - 20, startY + (o.fliserH - o.fliserH_cut / 2) * skala);
+        ctx.rotate(-Math.PI / 2);
+        ctx.fillText(`${o.D} m`, 0, 0);
+        ctx.restore();
+        tegnPil(ctx, startX + (o.fliserW - o.fliserW_cut) * skala - 10, startY + (o.fliserH - o.fliserH_cut) * skala, startX + (o.fliserW - o.fliserW_cut) * skala - 10, startY + o.fliserH * skala);
+
+        // Mål E (Innhukksvegg horisontal)
+        ctx.fillText(`${o.E} m`, startX + (o.fliserW - o.fliserW_cut / 2) * skala, startY + (o.fliserH - o.fliserH_cut) * skala - 20);
+        tegnPil(ctx, startX + (o.fliserW - o.fliserW_cut) * skala, startY + (o.fliserH - o.fliserH_cut) * skala - 12, startX + o.fliserW * skala, startY + (o.fliserH - o.fliserH_cut) * skala - 12);
+
+        // Mål F (Høyre vegg toppdel)
+        ctx.save();
+        ctx.translate(startX + o.fliserW * skala + 20, startY + ((o.fliserH - o.fliserH_cut) * skala) / 2);
+        ctx.rotate(Math.PI / 2);
+        ctx.fillText(`${o.F} m`, 0, 0);
+        ctx.restore();
+        tegnPil(ctx, startX + o.fliserW * skala + 12, startY, startX + o.fliserW * skala + 12, startY + (o.fliserH - o.fliserH_cut) * skala);
+    }
+
+    function tegnPil(ctx, x1, y1, x2, y2) {
+        ctx.strokeStyle = "#7f8c8d";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+
+        // Tegn små endestreker i stedet for piler for renere arkitektuttrykk
+        ctx.beginPath();
+        if (x1 === x2) { // Vertikal linje
+            ctx.moveTo(x1 - 4, y1); ctx.lineTo(x1 + 4, y1);
+            ctx.moveTo(x2 - 4, y2); ctx.lineTo(x2 + 4, y2);
+        } else { // Horisontal linje
+            ctx.moveTo(x1, y1 - 4); ctx.lineTo(x1, y1 + 4);
+            ctx.moveTo(x2, y2 - 4); ctx.lineTo(x2, y2 + 4);
+        }
+        ctx.stroke();
+    }
+
+    // Start programmet
+    genererOppgave();
+</script>
+
+</body>
+</html>
