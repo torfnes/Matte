@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Regn ut Areal og Omkrets</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #f4f7f6;
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        canvas {
+            background: #fff;
+            border: 1px solid #ccc;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .input-group {
+            margin: 15px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        input[type="number"] {
+            padding: 8px;
+            width: 80px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.secondary {
+            background-color: #2196F3;
+        }
+        button.secondary:hover {
+            background-color: #0b7dda;
+        }
+        .feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 18px;
+            min-height: 24px;
+        }
+        .correct { color: #2e7d32; }
+        .wrong { color: #c62828; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Finn areal og omkrets av figuren</h2>
+    <p>Rektangelet har en trekant på toppen. Målene er oppgitt i centimeter (cm).</p>
+    
+    <canvas id="figurCanvas" width="400" height="300"></canvas>
+
+    <div class="input-group">
+        <label for="arealInput"><strong>Areal (cm²):</strong></label>
+        <input type="number" id="arealInput" step="any" placeholder="Svar">
+    </div>
+
+    <div class="input-group">
+        <label for="omkretsInput"><strong>Omkrets (cm):</strong></label>
+        <input type="number" id="omkretsInput" step="any" placeholder="Svar">
+    </div>
+
+    <div style="margin-top: 20px; display: flex; justify-content: center; gap: 10px;">
+        <button onclick="sjekkSvar()">Sjekk svar</button>
+        <button class="secondary" onclick="genererNyOppgave()">Ny oppgave</button>
+    </div>
+
+    <div id="tilbakemelding" class="feedback"></div>
+</div>
+
+<script>
+    let bredde, hoydeRektangel, hoydeTrekant, hypotenus;
+    let riktigAreal, riktigOmkrets;
+
+    function genererNyOppgave() {
+        // Tøm inputfelt og tilbakemelding
+        document.getElementById('arealInput').value = '';
+        document.getElementById('omkretsInput').value = '';
+        document.getElementById('tilbakemelding').innerHTML = '';
+
+        // Generer tilfeldige hele tall for målene (mellom 4 og 12 for grei visning)
+        bredde = Math.floor(Math.random() * 7) + 6;          // 6 til 12
+        hoydeRektangel = Math.floor(Math.random() * 5) + 5;  // 5 til 9
+        hoydeTrekant = Math.floor(Math.random() * 4) + 4;    // 4 til 7
+
+        // Beregn trekantens skråside (hypotenus) ved Pytagoras
+        // Trekanten er symmetrisk, så katetene er (bredde/2) og hoydeTrekant
+        let halvbredde = bredde / 2;
+        hypotenus = Math.sqrt((halvbredde * halvbredde) + (hoydeTrekant * hoydeTrekant));
+
+        // Beregn fasit
+        let arealRektangel = bredde * hoydeRektangel;
+        let arealTrekant = (bredde * hoydeTrekant) / 2;
+        riktigAreal = arealRektangel + arealTrekant;
+
+        // Omkretsen er bunn + 2 * sidevegg i rektangel + 2 * skråsider i trekant
+        riktigOmkrets = bredde + (2 * hoydeRektangel) + (2 * hypotenus);
+
+        tegnFigur();
+    }
+
+    function tegnFigur() {
+        const canvas = document.getElementById('figurCanvas');
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Skaleringsfaktor for at figuren skal passe fint på skjermen
+        const skala = 20; 
+        
+        // Sentrer figuren på canvasen
+        const startX = (canvas.width - (bredde * skala)) / 2;
+        const startY = 240; // bunnen av figuren
+
+        // Tegn hele figuren som én lukket form (uten skillelinje)
+        ctx.beginPath();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#333';
+        ctx.fillStyle = '#e3f2fd'; // Lys blå fyllfarge
+
+        // Start nede til venstre
+        ctx.moveTo(startX, startY);
+        // Opp til rektangelets hjørne
+        ctx.lineTo(startX, startY - (hoydeRektangel * skala));
+        // Opp til trekantens topp (midten)
+        ctx.lineTo(startX + (bredde * skala / 2), startY - ((hoydeRektangel + hoydeTrekant) * skala));
+        // Ned til rektangelets høyre hjørne
+        ctx.lineTo(startX + (bredde * skala), startY - (hoydeRektangel * skala));
+        // Ned til bunnen høyre
+        ctx.lineTo(startX + (bredde * skala), startY);
+        // Tilbake til start (bunnen venstre)
+        ctx.closePath();
+        
+        ctx.fill();
+        ctx.stroke();
+
+        // Sett på mål/tall på utsiden av figuren
+        ctx.fillStyle = '#000';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+
+        // Bredde (bunn)
+        ctx.fillText(bredde + ' cm', startX + (bredde * skala / 2), startY + 25);
+
+        // Høyde rektangel (venstre side)
+        ctx.textAlign = 'right';
+        ctx.fillText(hoydeRektangel + ' cm', startX - 10, startY - (hoydeRektangel * skala / 2));
+
+        // Høyde på trekant (stiplet linje i midten for å hjelpe elevene)
+        ctx.beginPath();
+        ctx.setLineDash([5, 5]);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#777';
+        ctx.moveTo(startX + (bredde * skala / 2), startY - (hoydeRektangel * skala));
+        ctx.lineTo(startX + (bredde * skala / 2), startY - ((hoydeRektangel + hoydeTrekant) * skala));
+        ctx.stroke();
+        ctx.setLineDash([]); // nullstill stipling
+
+        // Tekst for trekantens høyde
+        ctx.textAlign = 'left';
+        ctx.fillText('h = ' + hoydeTrekant + ' cm', startX + (bredde * skala / 2) + 5, startY - (hoydeRektangel * skala) - (hoydeTrekant * skala / 2));
+    }
+
+    function sjekkSvar() {
+        let elevAreal = parseFloat(document.getElementById('arealInput').value);
+        let elevOmkrets = parseFloat(document.getElementById('omkretsInput').value);
+        let tilbakemeldingEl = document.getElementById('tilbakemelding');
+
+        if (isNaN(elevAreal) || isNaN(elevOmkrets)) {
+            tilbakemeldingEl.innerHTML = "<span class='wrong'>Vennligst skriv inn svar i begge felt!</span>";
+            return;
+        }
+
+        // Tillat et lite avvik pga. desimaler (særlig på omkrets/hypotenus)
+        let arealRiktig = Math.abs(elevAreal - riktigAreal) < 0.2;
+        let omkretsRiktig = Math.abs(elevOmkrets - riktigOmkrets) < 0.2;
+
+        if (arealRiktig && omkretsRiktig) {
+            tilbakemeldingEl.innerHTML = "<span class='correct'>🎉 Helt fantastisk! Begge svar er riktige.</span>";
+        } else {
+            let tekst = "";
+            if (!arealRiktig) tekst += "Arealet er ikke helt riktig ennå. ";
+            if (!omkretsRiktig) tekst += "Omkretsen er ikke helt riktig ennå (husk å regne ut de skrå sidene).";
+            tilbakemeldingEl.innerHTML = `<span class='wrong'>❌ ${tekst} Prøv igjen!</span>`;
+        }
+    }
+
+    // Start det første spillet når siden lastes
+    window.onload = genererNyOppgave;
+</script>
+
+</body>
+</html>
