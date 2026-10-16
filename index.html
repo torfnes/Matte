@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometriquiz: Sammensatte figurer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        h1 { color: #2c3e50; margin-bottom: 5px; }
+        p.instruksjon { color: #7f8c8d; margin-top: 0; margin-bottom: 20px; }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        canvas {
+            background-color: #ffffff;
+            border: 2px solid #bdc3c7;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .input-panel {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            border: 2px solid #bdc3c7;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            text-align: left;
+            min-width: 280px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #34495e; }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-bottom: 10px;
+        }
+        .btn-sjekk { background-color: #2ecc71; color: white; }
+        .btn-sjekk:hover { background-color: #27ae60; }
+        .btn-neste { background-color: #3498db; color: white; }
+        .btn-neste:hover { background-color: #2980b9; }
+        .btn-hint { background-color: #f1c40f; color: #333; }
+        .btn-hint:hover { background-color: #f39c12; }
+        
+        .tilbakemelding {
+            font-weight: bold;
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            display: none;
+        }
+        .suksess { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .feil { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        
+        .hint-boks {
+            margin-top: 15px;
+            padding: 12px;
+            background-color: #e8f4f8;
+            border-left: 4px solid #3498db;
+            font-size: 14px;
+            display: none;
+            color: #2c3e50;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Geometriquiz: Sammensatte figurer</h1>
+    <p class="instruksjon">Regn ut arealet og omkretsen av figuren. 1 rute tilsvarer 1 cm.</p>
+
+    <div class="container">
+        <canvas id="canvas" width="500" height="500"></canvas>
+
+        <div class="input-panel">
+            <div>
+                <h3 id="figur-navn" style="margin-top:0; color:#2c3e50;">Laster figur...</h3>
+                <div class="input-group">
+                    <label for="areal-input">Areal (cm²):</label>
+                    <input type="number" id="areal-input" step="any" placeholder="Ditt svar">
+                </div>
+                <div class="input-group">
+                    <label for="omkrets-input">Omkrets (cm):</label>
+                    <input type="number" id="omkrets-input" step="any" placeholder="Ditt svar">
+                </div>
+                
+                <button class="btn-sjekk" onclick="sjekkSvar()">Sjekk svar</button>
+                <button class="btn-hint" onclick="visHint()">Vis hint / fasit</button>
+                <button class="btn-neste" onclick="genererNyFigur()">Neste figur</button>
+            </div>
+
+            <div>
+                <div id="tilbakemelding" class="tilbakemelding"></div>
+                <div id="hint-boks" class="hint-boks"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const RUTE_STR = 30; 
+        const OFFSET_X = 80;
+        const OFFSET_Y = 80;
+
+        let gjeldendeFigur = {};
+        const figurTyper = ['L-figur', 'T-figur', 'Hus', 'U-figur'];
+
+        function tilfeldigHeltall(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function tegnRutenett() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#e3e3e3';
+            ctx.lineWidth = 1;
+
+            for (let x = 0; x <= canvas.width; x += RUTE_STR) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for (let y = 0; y <= canvas.height; y += RUTE_STR) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+        }
+
+        function tegnPil(x1, y1, x2, y2, tekst, underEllerVenstre = false) {
+            ctx.strokeStyle = '#e74c3c';
+            ctx.fillStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.font = 'bold 14px Arial';
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            const vinkel = Math.atan2(y2 - y1, x2 - x1);
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x1 + 6 * Math.cos(vinkel + Math.PI/6), y1 + 6 * Math.sin(vinkel + Math.PI/6));
+            ctx.lineTo(x1 + 6 * Math.cos(vinkel - Math.PI/6), y1 + 6 * Math.sin(vinkel - Math.PI/6));
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x2 - 6 * Math.cos(vinkel + Math.PI/6), y2 - 6 * Math.sin(vinkel + Math.PI/6));
+            ctx.lineTo(x2 - 6 * Math.cos(vinkel - Math.PI/6), y2 - 6 * Math.sin(vinkel - Math.PI/6));
+            ctx.fill();
+
+            ctx.fillStyle = '#2c3e50';
+            const midtX = (x1 + x2) / 2;
+            const midtY = (y1 + y2) / 2;
+            
+            if (x1 === x2) { 
+                ctx.textAlign = underEllerVenstre ? 'right' : 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(tekst, midtX + (underEllerVenstre ? -10 : 10), midtY);
+            } else { 
+                ctx.textAlign = 'center';
+                ctx.textBaseline = underEllerVenstre ? 'top' : 'bottom';
+                ctx.fillText(tekst, midtX, midtY + (underEllerVenstre ? 8 : -8));
+            }
+        }
+
+        function genererNyFigur() {
+            try {
+                document.getElementById('areal-input').value = '';
+                document.getElementById('omkrets-input').value = '';
+                document.getElementById('tilbakemelding').style.display = 'none';
+                document.getElementById('hint-boks').style.display = 'none';
+
+                tegnRutenett();
+
+                const type = figurTyper[Math.floor(Math.random() * figurTyper.length)];
+                document.getElementById('figur-navn').innerText = `Figurtype: ${type}`;
+
+                ctx.fillStyle = '#a8dadc';
+                ctx.strokeStyle = '#457b9d';
+                ctx.lineWidth = 3;
+
+                let areal = 0;
+                let omkrets = 0;
+                let hintTekst = "";
+
+                if (type === 'L-figur') {
+                    const W1 = tilfeldigHeltall(3, 4);
+                    const W2 = tilfeldigHeltall(3, 4);
+                    const H1 = tilfeldigHeltall(3, 4);
+                    const H2 = tilfeldigHeltall(3, 4);
+
+                    ctx.beginPath();
+                    ctx.moveTo(OFFSET_X, OFFSET_Y);
+                    ctx.lineTo(OFFSET_X + W1 * RUTE_STR, OFFSET_Y);
+                    ctx.lineTo(OFFSET_X + W1 * RUTE_STR, OFFSET_Y + H1 * RUTE_STR);
+                    ctx.lineTo(OFFSET_X + (W1+W2) * RUTE_STR, OFFSET_Y + H1 * RUTE_STR);
+                    ctx.lineTo(OFFSET_X + (W1+W2) * RUTE_STR, OFFSET_Y + (H1+H2) * RUTE_STR);
+                    ctx.lineTo(OFFSET_X, OFFSET_Y + (H1+H2) * RUTE_STR);
+                    ctx.closePath();
+                    ctx.fill(); ctx.stroke();
+
+                    tegnPil(OFFSET_X, OFFSET_Y - 15, OFFSET_X + W1 * RUTE_STR, OFFSET_Y - 15, `${W1} cm`, false);
+                    tegnPil(OFFSET_X - 15, OFFSET_Y, OFFSET_X - 15, OFFSET_Y + (H1+H2) * RUTE_STR, `${H1+H2} cm`, true);
+                    tegnPil(OFFSET_X + W1 * RUTE_STR + 15, OFFSET_Y + H1 * RUTE_STR, OFFSET_X + W1 * RUTE_STR + 15, OFFSET_Y + (H1+H2) * RUTE_STR, `${H2} cm`, false);
+                    tegnPil(OFFSET_X, OFFSET_Y + (H1+H2) * RUTE_STR + 15, OFFSET_X + (W1+W2) * RUTE_STR, OFFSET_Y + (H1+H2) * RUTE_STR + 15, `${W1+W2} cm`, true);
+
+                    areal = (W1 * H1) + ((W1 + W2) * H2);
+                    omkrets = (W1 + W2) + (H1 + H2) + W1 + H1 + W2 + H2;
+                    hintTekst = `<strong>Hint:</strong> Del i to rektangler.<br>Areal = (${W1} × ${H1}) + (${W1+W2} × ${H2}) = ${areal} cm².<br>Omkrets: Legg sammen alle de 6 yttersidene.`;
+
+                } else if (type === 'T-figur') {
+                    const topW = 8;
+                    const topH = 2;
+                    const bunnW = 4;
+                    const bunnH = 4;
+                    const sideW = 2; 
+
+                    ctx.beginPath();
+                    ctx.moveTo(OFFSET_X, OFFSET_Y);
+                    ctx.lineTo(OFFSET_X + topW * RUTE_STR, OFFSET_Y);
+                    ctx.lineTo(OFFSET_X + topW * RUTE_STR, OFFSET_Y + topH * RUTE_STR);
