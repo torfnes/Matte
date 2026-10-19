@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometriøving for elever - Sammensatte figurer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 550px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 { color: #2c3e50; margin-top: 0; font-size: 24px; }
+        #canvas-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+        canvas {
+            border: 2px dashed #b2bec3;
+            background-color: #fafafa;
+            border-radius: 8px;
+        }
+        .input-group {
+            margin: 15px 0;
+            text-align: left;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #34495e;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #bdc3c7;
+            border-radius: 6px;
+            box-sizing: border-box;
+            transition: all 0.3s;
+        }
+        .correct { border-color: #2ecc71 !important; background-color: #e8f8f5; }
+        .wrong { border-color: #e74c3c !important; background-color: #fceae9; }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #2980b9; }
+        #feedback { font-weight: bold; margin-top: 15px; font-size: 18px; }
+        #figurnavn { font-style: italic; color: #7f8c8d; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Areal og omkrets av sammensatte figurer</h1>
+    <div id="figurnavn"></div>
+    <p>Rund av svarene til nærmeste hele tall om nødvendig.</p>
+    
+    <div id="canvas-container">
+        <canvas id="figurCanvas" width="400" height="300"></canvas>
+    </div>
+
+    <div class="input-group">
+        <label id="label-areal" for="input-areal">Hva er det totale arealet?</label>
+        <input type="number" id="input-areal" placeholder="Skriv svar her...">
+    </div>
+
+    <div class="input-group">
+        <label id="label-omkrets" for="input-omkrets">Hva er den totale omkretsen?</label>
+        <input type="number" id="input-omkrets" placeholder="Skriv svar her...">
+    </div>
+
+    <button onclick="sjekkSvar()">Sjekk svar</button>
+    <button onclick="genererNyFigur()" style="background-color: #2ecc71; margin-top: 10px;">Neste figur</button>
+
+    <div id="feedback"></div>
+</div>
+
+<script>
+    const canvas = document.getElementById('figurCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let gjeldendeFigur = "";
+    let fasitAreal = 0;
+    let fasitOmkrets = 0;
+
+    function slettFelter() {
+        document.getElementById('input-areal').value = "";
+        document.getElementById('input-omkrets').value = "";
+        document.getElementById('input-areal').className = "";
+        document.getElementById('input-omkrets').className = "";
+        document.getElementById('feedback').textContent = "";
+    }
+
+    function tilfeldig(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function genererNyFigur() {
+        slettFelter();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Velger tilfeldig mellom de to sammensatte figurtypene
+        const figurTyper = ['sammensatt_rektangel', 'rektangel_trekant'];
+        gjeldendeFigur = figurTyper[Math.floor(Math.random() * figurTyper.length)];
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#2c3e50';
+        ctx.fillStyle = '#74b9ff';
+        ctx.font = 'bold 14px Arial';
+
+        if (gjeldendeFigur === 'sammensatt_rektangel') {
+            document.getElementById('figurnavn').textContent = "Figurtype: L-formet figur (to rektangler)";
+            
+            // Generer logiske mål for en L-form
+            let a = tilfeldig(4, 7);  // Total bredde i bunn
+            let b = tilfeldig(3, 5);  // Bredde på vertikal del
+            let c = tilfeldig(5, 8);  // Total høyde på venstre side
+            let d = tilfeldig(3, 4);  // Høyde på horisontal del i bunn
+            
+            // Sikre at logikken holder (b må være mindre enn a, d mindre enn c)
+            if (b >= a) b = a - 2;
+            if (d >= c) d = c - 2;
+            
+            let e = a - b; // Resterende bredde på toppen
+            let f = c - d; // Resterende høyde på høyre side
+
+            // Matematisk fasit
+            fasitAreal = (a * d) + (b * f);
+            fasitOmkrets = a + b + c + d + e + f;
+
+            // Skaler og plasser sentrert
+            let scale = 20;
+            let startX = (canvas.width - (a * scale)) / 2;
+            let startY = (canvas.height - (c * scale)) / 2;
+
+            // Tegner L-formen i én sammenhengende bane uten skillelinjer
+            ctx.beginPath();
+            ctx.moveTo(startX, startY); // Topp venstre
+            ctx.lineTo(startX + (b * scale), startY); // Til høyre på toppen
+            ctx.lineTo(startX + (b * scale), startY + (f * scale)); // Ned til det indre hjørnet
+            ctx.lineTo(startX + (a * scale), startY + (f * scale)); // Helt ut til høyre kant
+            ctx.lineTo(startX + (a * scale), startY + (c * scale)); // Ned til bunn høyre
+            ctx.lineTo(startX, startY + (c * scale)); // Helt til bunn venstre
+            ctx.closePath();
+            
+            ctx.fill();
+            ctx.stroke();
+
+            // Plasserer tydelige måltekster på utsiden av kantene
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillText(`${b} cm`, startX + (b * scale)/2 - 10, startY - 10); // Topp-bredde
+            ctx.fillText(`${c} cm`, startX - 45, startY + (c * scale)/2); // Venstre totalhøyde
+            ctx.fillText(`${a} cm`, startX + (a * scale)/2 - 10, startY + (c * scale) + 20); // Bunn totalbredde
+            ctx.fillText(`${d} cm`, startX + (a * scale) + 10, startY + (f * scale) + (d * scale)/2 + 5); // Høyre bunnhøyde
+            ctx.fillText(`${e} cm`, startX + (b * scale) + (e * scale)/2 - 10, startY + (f * scale) - 10); // Indre horisontale flate
+            ctx.fillText(`${f} cm`, startX + (b * scale) + 10, startY + (f * scale)/2); // Indre vertikale flate
+
+        } else if (gjeldendeFigur === 'rektangel_trekant') {
+            document.getElementById('figurnavn').textContent = "Figurtype: Husform (rektangel + trekant)";
+            
+            let bredde = tilfeldig(6, 12);
+            let rektangelHoyde = tilfeldig(4, 7);
+            let trekantHoyde = tilfeldig(3, 5);
+
+            // Regner ut skråkantene på taket (hypotenus på to mindre trekanter)
+            let halvBredde = bredde / 2;
+            let takSidelengde = Math.sqrt((halvBredde * halvBredde) + (trekantHoyde * trekantHoyde));
+
+            // Matematisk fasit
+            fasitAreal = (bredde * rektangelHoyde) + Math.round((bredde * trekantHoyde) / 2);
+            fasitOmkrets = Math.round(bredde + (2 * rektangelHoyde) + (2 * takSidelengde));
+
+            // Skaler og plasser sentrert
+            let scale = 18;
+            let totalHoyde = rektangelHoyde + trekantHoyde;
+            let startX = (canvas.width - (bredde * scale)) / 2;
+            let startY = (canvas.height - (totalHoyde * scale)) / 2;
+
+            // Tegner husformen i én ytre bane uten skillelinje
+            ctx.beginPath();
+            ctx.moveTo(startX, startY + (trekantHoyde * scale)); // Venstre vegghjørne under taket
+            ctx.lineTo(startX + (bredde * scale) / 2, startY); // Takmøne (toppen)
+            ctx.lineTo(startX + (bredde * scale), startY + (trekantHoyde * scale)); // Høyre vegghjørne under taket
+            ctx.lineTo(startX + (bredde * scale), startY + (totalHoyde * scale)); // Bunn høyre
+            ctx.lineTo(startX, startY + (totalHoyde * scale)); // Bunn venstre
+            ctx.closePath();
+
+            ctx.fill();
+            ctx.stroke();
+
+            // Plasserer måltekster
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillText(`${rektangelHoyde} cm`, startX - 45, startY + (trekantHoyde * scale) + (rektangelHoyde * scale)/2); // Vegghøyde venstre
+            ctx.fillText(`${bredde} cm`, startX + (bredde * scale)/2 - 15, startY + (totalHoyde * scale) + 20); // Grunnmursbredde
+            
+            // For å hjelpe eleven med å regne ut trekantarealet tegner vi en stiplet linje for totalhøyden/mønehøyden
+            ctx.beginPath();
+            ctx.setLineDash([4, 4]);
+            ctx.moveTo(startX + (bredde * scale) / 2, startY);
+            ctx.lineTo(startX + (bredde * scale) / 2, startY + (trekantHoyde * scale));
+            ctx.strokeStyle = '#e74c3c';
+            ctx.stroke();
+            ctx.setLineDash([]); // Nullstill stiplede linjer
+
+            // Tekst for høyden på taket og skråsiden
+            ctx.fillStyle = '#e74c3c';
+            ctx.fillText(`h = ${trekantHoyde} cm`, startX + (bredde * scale)/2 + 5, startY + (trekantHoyde * scale)/2);
+            
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillText(`skrå: ${Math.round(takSidelengde)} cm`, startX + (bredde * scale * 0.75), startY + (trekantHoyde * scale)/2);
+        }
+    }
+
+    function sjekkSvar() {
