@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geometriøving for elever</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 { color: #2c3e50; margin-top: 0; }
+        #canvas-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+        }
+        canvas {
+            border: 2px dashed #b2bec3;
+            background-color: #fafafa;
+            border-radius: 8px;
+        }
+        .input-group {
+            margin: 15px 0;
+            text-align: left;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #34495e;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #bdc3c7;
+            border-radius: 6px;
+            box-sizing: border-box;
+            transition: all 0.3s;
+        }
+        .correct { border-color: #2ecc71 !important; background-color: #e8f8f5; }
+        .wrong { border-color: #e74c3c !important; background-color: #fceae9; }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 15px;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #2980b9; }
+        #feedback { font-weight: bold; margin-top: 15px; font-size: 18px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Regn ut areal og omkrets</h1>
+    <p>Rund av svarene til nærmeste hele tall om nødvendig.</p>
+    
+    <div id="canvas-container">
+        <canvas id="figurCanvas" width="300" height="200"></canvas>
+    </div>
+
+    <div class="input-group">
+        <label id="label-areal" for="input-areal">Hva er arealet?</label>
+        <input type="number" id="input-areal" placeholder="Skriv svar her...">
+    </div>
+
+    <div class="input-group">
+        <label id="label-omkrets" for="input-omkrets">Hva er omkretsen?</label>
+        <input type="number" id="input-omkrets" placeholder="Skriv svar her...">
+    </div>
+
+    <button onclick="sjekkSvar()">Sjekk svar</button>
+    <button onclick="genererNyFigur()" style="background-color: #2ecc71; margin-top: 10px;">Neste figur</button>
+
+    <div id="feedback"></div>
+</div>
+
+<script>
+    const canvas = document.getElementById('figurCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let gjeldendeFigur = "";
+    let fasitAreal = 0;
+    let fasitOmkrets = 0;
+
+    function slettFelter() {
+        document.getElementById('input-areal').value = "";
+        document.getElementById('input-omkrets').value = "";
+        document.getElementById('input-areal').className = "";
+        document.getElementById('input-omkrets').className = "";
+        document.getElementById('feedback').textContent = "";
+    }
+
+    function tilfeldig(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function genererNyFigur() {
+        slettFelter();
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const figurTyper = ['rektangel', 'trekant', 'sirkel'];
+        gjeldendeFigur = figurTyper[Math.floor(Math.random() * figurTyper.length)];
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#2c3e50';
+        ctx.fillStyle = '#74b9ff';
+        ctx.font = '14px Arial';
+        ctx.fillStyleText = '#2c3e50';
+
+        if (gjeldendeFigur === 'rektangel') {
+            let bredde = tilfeldig(4, 12);
+            let hoyde = tilfeldig(3, 8);
+            
+            fasitAreal = bredde * hoyde;
+            fasitOmkrets = 2 * (bredde + hoyde);
+
+            // Tegn rektangel sentrert (skalert for synlighet)
+            let pxBredde = bredde * 18;
+            let pxHoyde = hoyde * 18;
+            let x = (canvas.width - pxBredde) / 2;
+            let y = (canvas.height - pxHoyde) / 2;
+
+            ctx.fillRect(x, y, pxBredde, pxHoyde);
+            ctx.strokeRect(x, y, pxBredde, pxHoyde);
+
+            // Måltekst
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillText(`Bredde: ${bredde} cm`, x + (pxBredde/4), y - 10);
+            ctx.fillText(`Høyde: ${hoyde} cm`, x + pxBredde + 10, y + (pxHoyde/2));
+
+        } else if (gjeldendeFigur === 'trekant') {
+            // Rettvinklet trekant for enkelhets skyld
+            let grunnlinje = tilfeldig(5, 12);
+            let hoyde = tilfeldig(4, 9);
+            
+            // Hypotenus: a^2 + b^2 = c^2
+            let hypotenus = Math.sqrt((grunnlinje*grunnlinje) + (hoyde*hoyde));
+            
+            fasitAreal = Math.round((grunnlinje * hoyde) / 2);
+            fasitOmkrets = Math.round(grunnlinje + hoyde + hypotenus);
+
+            let pxG = grunnlinje * 16;
+            let pxH = hoyde * 16;
+            let x = (canvas.width - pxG) / 2;
+            let y = (canvas.height - pxH) / 2 + pxH;
+
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + pxG, y);
+            ctx.lineTo(x, y - pxH);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillText(`g: ${grunnlinje} cm`, x + (pxG/3), y + 20);
+            ctx.fillText(`h: ${hoyde} cm`, x - 40, y - (pxH/2));
+
+        } else if (gjeldendeFigur === 'sirkel') {
+            let radius = tilfeldig(2, 5);
+            
+            fasitAreal = Math.round(Math.PI * radius * radius);
+            fasitOmkrets = Math.round(2 * Math.PI * radius);
+
+            let pxR = radius * 22;
+            let cx = canvas.width / 2;
+            let cy = canvas.height / 2;
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, pxR, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+
+            // Tegn radiuslinje
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + pxR, cy);
+            ctx.strokeStyle = '#e74c3c';
+            ctx.stroke();
+
+            ctx.fillStyle = '#2c3e50';
+            ctx.fillText(`r = ${radius} cm`, cx + (pxR/4), cy - 8);
+        }
+    }
+
+    function sjekkSvar() {
+        const inputAreal = parseFloat(document.getElementById('input-areal').value);
+        const inputOmkrets = parseFloat(document.getElementById('input-omkrets').value);
+        const feedback = document.getElementById('feedback');
+
+        let arealRiktig = (inputAreal === fasitAreal);
+        let omkretsRiktig = (inputOmkrets === fasitOmkrets);
+
+        document.getElementById('input-areal').className = arealRiktig ? 'correct' : 'wrong';
+        document.getElementById('input-omkrets').className = omkretsRiktig ? 'correct' : 'wrong';
+
+        if (arealRiktig && omkretsRiktig) {
+            feedback.textContent = "🎉 Helt supert! Begge svar er riktige!";
+            feedback.style.color = "#2ecc71";
+        } else {
+            feedback.textContent = "Prøv igjen! Rett opp i feltene som ble røde.";
+            feedback.style.color = "#e74c3c";
+        }
+    }
+
+    // Start spillet ved innlasting
+    genererNyFigur();
+</script>
+
+</body>
+</html>
